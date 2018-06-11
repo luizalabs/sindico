@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sindico
+  namespace: sindico
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: sindico
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+  - kind: ServiceAccount
+    name: sindico
+    namespace: sindico
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: sindico
+  name: sindico
+  namespace: sindico
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sindico
+  template:
+    metadata:
+      labels:
+        app: sindico
+    spec:
+      containers:
+      - env:
+        - name: SINDICO_NOTIFICATION_TOKEN
+          value: token
+        image: luizalabs/sindico:v0.1.0
+        imagePullPolicy: Always
+        name: sindico
+      serviceAccountName: sindico
