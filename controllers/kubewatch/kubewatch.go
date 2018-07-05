@@ -9,7 +9,7 @@ type Controller struct {
 }
 
 type Notification interface {
-	PostMessage(msg string) error
+	PostMessage(msg, channel string) error
 }
 
 type K8s interface {
@@ -18,11 +18,12 @@ type K8s interface {
 }
 
 type KubeWatchConfig struct {
-	CircleTime        int    `split_words:"true" default:"5"`
-	K8sEnv            string `split_words:"true" default:"production"`
-	NotReadyThreshold int    `split_words:"true" default:"60"`
-	IgnoreNsRegexp    string `split_words:"true" default:"default"`
-	TeamNsAnnotation  string `split_words:"true" default:"teresa.io/team"`
+	CircleTime          int    `split_words:"true" default:"5"`
+	K8sEnv              string `split_words:"true" default:"production"`
+	NotReadyThreshold   int    `split_words:"true" default:"60"`
+	IgnoreNsRegexp      string `split_words:"true" default:"default"`
+	TeamNsAnnotation    string `split_words:"true" default:"teresa.io/team"`
+	NotificationChannel string `split_words:"true" default:"#alerts"`
 }
 
 func NewController(k8s K8s, nt Notification) *Controller {

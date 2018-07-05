@@ -36,8 +36,8 @@ func (kw *KubeWatch) Run(stopCh <-chan struct{}) {
 	}
 	kw.logger.Debug("starting")
 	fn := func() {
-		kw.checkCrashedPods(cfg.K8sEnv, cfg.TeamNsAnnotation, re)
-		kw.checkNotReadyPods(cfg.NotReadyThreshold, cfg.K8sEnv, cfg.TeamNsAnnotation, re)
+		kw.checkCrashedPods(&cfg, re)
+		kw.checkNotReadyPods(&cfg, re)
 	}
 	time.Sleep(5 * time.Minute)
 	go wait.JitterUntil(fn, time.Duration(cfg.CircleTime)*time.Minute, 0.1, true, stopCh)
@@ -45,10 +45,13 @@ func (kw *KubeWatch) Run(stopCh <-chan struct{}) {
 	kw.logger.Debug("stopped")
 }
 
-func (kw *KubeWatch) checkCrashedPods(k8sEnv, teamAnnotation string, re *regexp.Regexp) {
+func (kw *KubeWatch) checkCrashedPods(cfg *KubeWatchConfig, re *regexp.Regexp) {
 	podList, err := kw.k.List("")
 	if err != nil {
-		kw.propagateMsg(fmt.Sprintf(":bomb: Error on check pods status: *%v*", err))
+		kw.propagateMsg(
+			fmt.Sprintf(":bomb: Error on check pods status: *%v*", err),
+			cfg.NotificationChannel,
+		)
 		return
 	}
 
@@ -58,11 +61,14 @@ func (kw *KubeWatch) checkCrashedPods(k8sEnv, teamAnnotation string, re *regexp.
 		return
 	}
 
-	msg := fmt.Sprintf(":shit: *PODS IN CRASH* on _%s_:\n\n", k8sEnv)
+	msg := fmt.Sprintf(":shit: *PODS IN CRASH* on _%s_:\n\n", cfg.K8sEnv)
 	for ns, pods := range podsInCrash {
-		team, err := kw.k.GetLabelValue(ns, teamAnnotation)
+		team, err := kw.k.GetLabelValue(ns, cfg.TeamNsAnnotation)
 		if err != nil {
-			kw.propagateMsg(fmt.Sprintf(":bomb: Error getting namespace label: *%v*", err))
+			kw.propagateMsg(
+				fmt.Sprintf(":bomb: Error getting namespace label: *%v*", err),
+				cfg.NotificationChannel,
+			)
 			return
 		}
 		msg = fmt.Sprintf(
@@ -70,34 +76,40 @@ func (kw *KubeWatch) checkCrashedPods(k8sEnv, teamAnnotation string, re *regexp.
 			msg, ns, team, len(pods))
 	}
 
-	if err = kw.propagateMsg(msg); err != nil {
+	if err = kw.propagateMsg(msg, cfg.NotificationChannel); err != nil {
 		fmt.Println("Error on post msg on slack: ", err)
 	}
 }
 
-func (kw *KubeWatch) checkNotReadyPods(ntr int, k8sEnv, teamAnnotation string, re *regexp.Regexp) {
+func (kw *KubeWatch) checkNotReadyPods(cfg *KubeWatchConfig, re *regexp.Regexp) {
 	podList, err := kw.k.List("")
 	if err != nil {
-		kw.propagateMsg(fmt.Sprintf(":bomb: Error on check pods status: *%v*", err))
+		kw.propagateMsg(
+			fmt.Sprintf(":bomb: Error on check pods status: *%v*", err),
+			cfg.NotificationChannel,
+		)
 		return
 	}
 
 	podsByNamespace := groupByNamespace(podList, re, kw.logger)
-	namespaceWithNotReadyPods := podsNotReadyByThreshold(podsByNamespace, ntr)
+	namespaceWithNotReadyPods := podsNotReadyByThreshold(podsByNamespace, cfg.NotReadyThreshold)
 	if len(namespaceWithNotReadyPods) == 0 {
 		return
 	}
 
-	msg := fmt.Sprintf(":warning: *NAMESPACES WITH HIGH NUMBER OF PODS NOT READY* on _%s_:\n\n", k8sEnv)
+	msg := fmt.Sprintf(":warning: *NAMESPACES WITH HIGH NUMBER OF PODS NOT READY* on _%s_:\n\n", cfg.K8sEnv)
 	for ns, perc := range namespaceWithNotReadyPods {
-		team, err := kw.k.GetLabelValue(ns, teamAnnotation)
+		team, err := kw.k.GetLabelValue(ns, cfg.TeamNsAnnotation)
 		if err != nil {
-			kw.propagateMsg(fmt.Sprintf(":bomb: Error getting namespace label: *%v*", err))
+			kw.propagateMsg(
+				fmt.Sprintf(":bomb: Error getting namespace label: *%v*", err),
+				cfg.NotificationChannel,
+			)
 		}
 		msg = fmt.Sprintf("%s*%s*: (@%s) *%d %%* of pods Not Ready\n", msg, ns, team, perc)
 	}
 
-	if err = kw.propagateMsg(msg); err != nil {
+	if err = kw.propagateMsg(msg, cfg.NotificationChannel); err != nil {
 		fmt.Println("Error on post msg on slack: ", err)
 	}
 }
@@ -119,9 +131,9 @@ func podsNotReadyByThreshold(items map[string][]Pod, threshold int) map[string]i
 	return result
 }
 
-func (kw *KubeWatch) propagateMsg(msg string) error {
+func (kw *KubeWatch) propagateMsg(msg, channel string) error {
 	fmt.Println(msg)
-	return kw.n.PostMessage(msg)
+	return kw.n.PostMessage(msg, channel)
 }
 
 func filterCrashedsPods(items map[string][]Pod) {
