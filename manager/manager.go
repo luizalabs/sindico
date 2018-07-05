@@ -127,7 +127,11 @@ func newWatchdog() (Controller, error) {
 	if err != nil {
 		return nil, err
 	}
-	ctrl := watchdog.NewController(k)
+	nt, err := newNotification()
+	if err != nil {
+		return nil, err
+	}
+	ctrl := watchdog.NewController(k, nt)
 	return ctrl, nil
 }
 

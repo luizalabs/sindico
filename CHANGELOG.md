@@ -3,6 +3,7 @@
 ## [NEXT_RELEASE]
 ### Added
 - changelog
+- watchdog service subcontroller
 
 ### Changed
 - remove global notification channel and add support for specific channels in
