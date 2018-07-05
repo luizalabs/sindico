@@ -26,7 +26,7 @@ type K8s interface {
 }
 
 type Notification interface {
-	PostMessage(msg string) error
+	PostMessage(msg, channel string) error
 }
 
 type Storage interface {
@@ -34,9 +34,10 @@ type Storage interface {
 }
 
 type EtcdBackupConfig struct {
-	Interval time.Duration `split_words:"true" default:"6h"`
-	Dir      string        `split_words:"true" default:"etcd-backup"`
-	Disabled string        `split_words:"true" default:""`
+	Interval            time.Duration `split_words:"true" default:"6h"`
+	Dir                 string        `split_words:"true" default:"etcd-backup"`
+	Disabled            string        `split_words:"true" default:""`
+	NotificationChannel string        `split_words:"true" default:"#alerts"`
 }
 
 type Controller struct {
@@ -56,10 +57,10 @@ func backupName(dir string) string {
 	return fmt.Sprintf("%s/etcd-backup-%s.tgz", dir, time.Now().Format(format))
 }
 
-func (c *Controller) Error(msg string, val ...interface{}) {
+func (c *Controller) notifyError(msg, channel string, val ...interface{}) {
 	c.logger.Error(msg, val...)
 	tmp := fmt.Sprintf("*sindico etcdbackup error*: %v", val)
-	if err := c.nt.PostMessage(tmp); err != nil {
+	if err := c.nt.PostMessage(tmp, channel); err != nil {
 		c.logger.Error("can't send message", val...)
 	}
 }
@@ -82,13 +83,14 @@ func (c *Controller) Run(stopCh <-chan struct{}) {
 	c.logger.Debug("stopped")
 }
 
-func (c *Controller) cleanup(pod string) {
+func (c *Controller) cleanup(cfg *EtcdBackupConfig, pod string) {
 	var stderr bytes.Buffer
 	_, err := c.k8s.Exec(pod, "", kubeNamespace, cleanupCmd, &stderr, nil)
 	resp := stderr.String()
 	if err != nil || resp != "" {
-		c.Error(
+		c.notifyError(
 			"dir cleaning failed",
+			cfg.NotificationChannel,
 			"err", err,
 			"pod", pod,
 			"stderr", resp,
@@ -99,7 +101,7 @@ func (c *Controller) cleanup(pod string) {
 func (c *Controller) backup(cfg *EtcdBackupConfig) {
 	pods, err := c.k8s.FindPods(kubeNamespace, "k8s-app=etcd-server")
 	if err != nil {
-		c.Error("find pods failed", "err", err)
+		c.notifyError("find pods failed", cfg.NotificationChannel, "err", err)
 		return
 	}
 	n := rand.Intn(len(pods))
@@ -108,20 +110,23 @@ func (c *Controller) backup(cfg *EtcdBackupConfig) {
 	_, err = c.k8s.Exec(pod, "", kubeNamespace, backupCmd, &stderr, nil)
 	resp := stderr.String()
 	if err != nil || resp != "" {
-		c.Error(
+		c.notifyError(
 			"backup failed",
+			cfg.NotificationChannel,
 			"err", err,
 			"pod", pod,
 			"stderr", resp,
 		)
 		return
 	}
-	defer c.cleanup(pod)
+	defer c.cleanup(cfg, pod)
 	stderr.Reset()
 	_, err = c.k8s.Exec(pod, "", kubeNamespace, fetchCmd, &stderr, &stdout)
 	resp = stderr.String()
 	if err != nil || resp != "" {
-		c.Error("tar creation failed",
+		c.notifyError(
+			"tar creation failed",
+			cfg.NotificationChannel,
 			"err", err,
 			"pod", pod,
 			"stderr", resp,
@@ -131,7 +136,9 @@ func (c *Controller) backup(cfg *EtcdBackupConfig) {
 	r := bytes.NewReader(stdout.Bytes())
 	fname := backupName(cfg.Dir)
 	if err := c.st.UploadFile(fname, r); err != nil {
-		c.Error("upload failed",
+		c.notifyError(
+			"upload failed",
+			cfg.NotificationChannel,
 			"err", err,
 			"pod", pod,
 		)

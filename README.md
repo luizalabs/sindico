@@ -18,7 +18,6 @@ Used to configure the kubernetes, storage and notification clients. For now only
 | Env | Description | Default |
 |---|---|---|
 | SINDICO\_K8S\_CONFIG\_FILE | kubectl config file  | |
-| SINDICO\_NOTIFICATION\_CHANNEL | notification channel | #alerts |
 | SINDICO\_NOTIFICATION\_AVATAR | notification avatar | |
 | SINDICO\_NOTIFICATION\_TOKEN | notification token | |
 | SINDICO\_NOTIFICATION\_USERNAME | notification username | sindico |
@@ -39,6 +38,7 @@ the storage bucket (is there a better way of doing this?).
 | SINDICO\_ETCD\_BACKUP\_INTERVAL | backup interval  | 6h |
 | SINDICO\_ETCD\_BACKUP\_DIR | backup directory | etcd-backup |
 | SINDICO\_ETCD\_BACKUP\_DISABLED | disable the controller | |
+| SINDICO\_ETCD\_BACKUP\_NOTIFICATION\_CHANNEL | notification channel | #alerts |
 
 ### Kubewatch
 
@@ -51,6 +51,7 @@ Checks for crashed and not ready pods using the notification client to report th
 | SINDICO\_KUBE\_WATCH\_NOT\_READY\_THRESHOLD | % not ready pods | 60 |
 | SINDICO\_KUBE\_WATCH\_IGNORE\_NS\_REGEXP | regexp for namespaces to be ignored | default |
 | SINDICO\_KUBE\_WATCH\_TEAM\_NS\_ANNOTATION | namespace annotation used to get the notification team | teresa.io/team |
+| SINDICO\_KUBE\_WATCH\_NOTIFICATION\_CHANNEL | notification channel | #alerts |
 
 ### Srebot
 
