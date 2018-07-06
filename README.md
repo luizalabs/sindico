@@ -67,7 +67,8 @@ Example usage: `!cmdprefix-set-replicas namespace deployname 0`
 
 ### Watchdog
 
-Enforces maximum values for requests and hpa replicas.
+Enforces maximum values for requests and hpa replicas. Also checks for missing
+firewall rules in `LoadBalancer` services.
 
 | Env | Description | Default |
 |---|---|---|
@@ -79,6 +80,11 @@ Enforces maximum values for requests and hpa replicas.
 | SINDICO\_WATCHDOG\_HPA\_IGNORE\_NS\_REGEXP | regexp for namespaces to be ignored | nginx-.+\|sindico\|default\|kube-.+ |
 | SINDICO\_WATCHDOG\_HPA\_MAX\_REPLICAS | maximum hpa max replicas | 2 |
 | SINDICO\_WATCHDOG\_HPA\_MIN\_REPLICAS | maximum hpa min replicas | 2 |
+| SINDICO\_WATCHDOG\_SERVICE\_INTERVAL | check interval for services | 5m |
+| SINDICO\_WATCHDOG\_SERVICE\_CHECK\_FIREWALL | activate firewall checks | false |
+| SINDICO\_WATCHDOG\_SERVICE\_CHECK\_FIREWALL\_SKIP\_NS\_REGEXP | regexp for namespaces to be ignored | nginx-.+\|sindico\|default\|kube-.+ |
+| SINDICO\_WATCHDOG\_SERVICE\_NOTIFICATION\_CHANNEL | notification channel | #alerts |
+| SINDICO\_WATCHDOG\_SERVICE\_TEAM\_NS\_LABEL | namespace label with the notification team | teresa.io/team |
 
 ## Deploying
 
