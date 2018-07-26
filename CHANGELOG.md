@@ -5,6 +5,9 @@
 - changelog
 - watchdog service subcontroller
 
+### Fixed
+- setting memory on the service watchdog
+
 ### Changed
 - remove global notification channel and add support for specific channels in
   the etcdbackup and kubewatch controllers

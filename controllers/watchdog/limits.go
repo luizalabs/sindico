@@ -83,7 +83,7 @@ func (l *LimitsSubController) updateLimits(cfg *LimitsSubControllerConfig, lim *
 	}
 	if mem != nil && mem.Cmp(cfgMem) > 0 {
 		l.logger.Debug("set mem", "ns", ns, "mem", cfgMem.String())
-		defReq["mem"] = cfgMem
+		defReq["memory"] = cfgMem
 		update = true
 	}
 	if update {
