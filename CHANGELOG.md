@@ -1,6 +1,6 @@
 # Changelog
 
-## [NEXT_RELEASE]
+## [0.3.0] - 2018-07-31
 ### Added
 - changelog
 - watchdog service subcontroller
